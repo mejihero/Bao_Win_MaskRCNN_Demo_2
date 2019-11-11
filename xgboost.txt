@@ -1,0 +1,143 @@
+##################################################
+############       xgboost   #####################
+
+
+1.xgboost.cv()
+2.xgboost.train()
+3.xgboost.XGBClassifier()/xgboost.XGBRegresssor()
+4.GridSearchCV()
+
+
+
+
+
+from sklearn.model_selection import GroupKFold
+
+folds_5 = list(GroupKFold(n_splits = 5).split(X,
+                                                 groups = X.loc[:, 'incident_id']))
+
+folds_2 = list(GroupKFold(n_splits = 2).split(X,
+                                             groups = X.loc[:, 'incident_id']))
+
+
+
+
+
+1. xgb.cv(): test general performance
+
+
+xgb_train = xgb.DMatrix(X_train, label = y_train)
+xgb_test = xgb.DMatrix(X_test, label = y_test)
+
+
+params_ = {'booster': 'gbtree',
+           'objective': 'multi:softprob',
+          'verbosity': 1,
+           'nthread': 4,
+           'learning_rate': 0.01,
+           'gamma': 0,
+           'max_depth': 7,
+           'min_child_weight': 1,
+           'max_delta_step': 0,
+           'subsample': 0.9,
+           'colsample_bytree': 0.8,
+           'reg_alpha': 0.1,
+           'reg_lambda': 1.5,
+           'eval_metric': 'mlogloss',
+           'num_class': 5,
+          }
+
+
+
+
+mod_1 = xgb.cv(params_,
+                 xgb_all,
+                 num_boost_round = 1000,
+               folds = folds_5,
+               metrics = 'mlogloss',
+               early_stopping_rounds = 100,             
+               verbose_eval = 50,
+               seed = 0,
+              )
+
+
+
+2. xgb.train(): train a model with both train and validation test -> this is similar to xgb.XGBClassifier() and xgb.XGBRegressor()
+
+mod_2 = xgb.train(params_,
+                 xgb_train,
+                 num_boost_round = 500,
+                 evals = [(xgb_train, 'train'), (xgb_test, 'test')],
+                 early_stopping_rounds = 50,
+                 verbose_eval = 100)
+
+
+
+
+
+3. 
+
+from xgboost import XGBClassifier
+
+mod_3 = XGBClassifier(max_depth = 6,
+                     learning_rate = 0.01,
+                     n_estimators = 1000,
+                     silent = True,
+                     objective = 'multi:softprob',
+                      num_class = 5,
+                     booster = 'gbtree',
+                     n_jobs = 4,
+                     gamma = 0.5,
+                     min_child_weight = 1,
+                     max_delta_step = 0,
+                     subsample = 0.9,
+                     colsample_bytree = 0.8,
+                     colsample_bylevel = 1,
+                     reg_alpha = 0.5,
+                     reg_lambda = 1.5,
+                     scale_pos_weight = 1,
+                     random_state = 42)
+
+
+
+mod_3.fit(X_train, y_train,
+         eval_set = [(X_train, y_train), (X_test, y_test)],
+         eval_metric = 'mlogloss',
+          early_stopping_rounds = 50,
+          verbose = 100
+         )
+
+
+
+
+
+4. grid search
+
+param_grid_1 = {'max_depth': [5,6,7,8,9],
+              'min_child_weight': [1,3,5,7],
+              'gamma': [0,.1,.2,.3,.4,.5],
+              'subsample': [.6,.7,.8,.9],
+              'colsample_bytree': [.6,.7,.8,.9],
+              'reg_alpha': [1e-5,1e-2,0.1,1,100]}
+
+
+grid = GridSearchCV(estimator = mod_3,
+                    param_grid = param_grid_1,
+                    scoring = 'mlogloss',
+                    n_jobs = 4,
+                    verbose = -1,)
+
+
+grid.fit(X_train, y_train)
+
+
+
+
+
+
+
+
+
+
+
+
